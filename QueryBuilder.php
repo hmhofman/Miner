@@ -1344,7 +1344,7 @@
      * @uses   QueryBuilder::$limit
      */
     public function getLimit() {
-      return $this->limit['limit'];
+      return @$this->limit['limit'];
     }
 
     /**
@@ -1354,7 +1354,7 @@
      * @uses   QueryBuilder::$limit
      */
     public function getLimitOffset() {
-      return $this->limit['offset'];
+      return @$this->limit['offset'];
     }
 
     /**
