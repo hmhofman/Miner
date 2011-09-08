@@ -61,84 +61,84 @@
      *
      * @var PDO
      */
-    private $PdoConnection;
+    protected $PdoConnection;
 
     /**
      * Execution options like DISTINCT and SQL_CALC_FOUND_ROWS.
      *
      * @var array
      */
-    private $option;
+    protected $option;
 
     /**
      * Columns, tables, and expressions to SELECT from.
      *
      * @var array
      */
-    private $select;
+    protected $select;
 
     /**
      * Table to select FROM.
      *
      * @var array
      */
-    private $from;
+    protected $from;
 
     /**
      * JOIN tables and ON criteria.
      *
      * @var array
      */
-    private $join;
+    protected $join;
 
     /**
      * WHERE criteria.
      *
      * @var array
      */
-    private $where;
+    protected $where;
 
     /**
      * Columns to GROUP BY.
      *
      * @var array
      */
-    private $groupBy;
+    protected $groupBy;
 
     /**
      * HAVING criteria.
      *
      * @var array
      */
-    private $having;
+    protected $having;
 
     /**
      * Columns to ORDER BY.
      *
      * @var array
      */
-    private $orderBy;
+    protected $orderBy;
 
     /**
      * Number of rows to return from offset.
      *
      * @var array
      */
-    private $limit;
+    protected $limit;
 
     /**
      * WHERE placeholder values.
      *
      * @var array
      */
-    private $wherePlaceholderValues;
+    protected $wherePlaceholderValues;
 
     /**
      * HAVING placeholder values.
      *
      * @var array
      */
-    private $havingPlaceholderValues;
+    protected $havingPlaceholderValues;
 
     /**
      * Constructor.
