@@ -55,6 +55,11 @@
      */
     const BRACKET_OPEN = "(";
     const BRACKET_CLOSE = ")";
+	
+	/**
+	* Specifies that the where() column name is the full where field, eg where("users.password = password(?)", "test", QueryBuilder3::RAW_WHERE)
+	*/
+	const RAW_WHERE = "raw";
 
     /**
      * PDO database connection to use in executing the query.
@@ -781,6 +786,15 @@
               $value = $currentCriterion['value'];
 
               break;
+            case self::RAW_WHERE:
+            	$currentCriterion['operator'] = "";
+            	$value = "";
+            	if($usePlaceholders){
+            		$placeholderValues[] = $currentCriterion['value'];
+            	}else{
+            		$currentCriterion['column'] = str_replace("?", $this->quote($currentCriterion['value']), $currentCriterion['column']);
+            	}
+            break;
 
             default:
               if ($usePlaceholders) {
