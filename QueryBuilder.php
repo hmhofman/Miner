@@ -60,6 +60,11 @@
 	* Specifies that the where() column name is the full where field, eg where("users.password = password(?)", "test", QueryBuilder3::RAW_WHERE)
 	*/
 	const RAW_WHERE = "raw";
+	
+	/**
+	 * Specifies that the where() column contains a subquery
+	 */
+	const SUB_QUERY = "subquery";
 
     /**
      * PDO database connection to use in executing the query.
@@ -794,6 +799,26 @@
             	}else{
             		$currentCriterion['column'] = str_replace("?", $this->quote($currentCriterion['value']), $currentCriterion['column']);
             	}
+            break;
+            
+            case self::SUB_QUERY:
+            	$value = "";
+            	$currentCriterion['operator'] = self::IN;
+            	
+            	if($currentCriterion['value'] instanceof self){
+            		if($usePlaceholders){
+            			$value				= $currentCriterion['value']->getQueryString();
+            			$placeholderValues  = array_merge($placeholderValues, $currentCriterion['value']->getPlaceholderValues());
+            		}else{
+            			$value =  $currentCriterion['value']->getQueryString(false);
+            		}
+            	}else{
+            		// Raw sql
+            		$value = $currentCriterion['value'];
+            	}
+            	
+            	// Wrap the subquery
+            	$value = self::BRACKET_OPEN . $value . self::BRACKET_CLOSE;
             break;
 
             default:
