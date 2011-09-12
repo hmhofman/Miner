@@ -135,6 +135,14 @@
      * @var array
      */
     protected $limit;
+    
+    /**
+     * FROM placeholder values
+     * 
+     * @var array
+     */
+    protected $fromPlaceholderValues;
+    
 
     /**
      * WHERE placeholder values.
@@ -179,6 +187,7 @@
       $this->orderBy = array();
       $this->limit = array();
 
+      $this->fromPlaceholderValues = array();
       $this->wherePlaceholderValues = array();
       $this->havingPlaceholderValues = array();
 
@@ -544,11 +553,21 @@
      * @uses   QueryBuilder::$from
      * @uses   QueryBuilder::getJoinString()
      */
-    public function getFromString($includeText = true) {
+    public function getFromString($usePlaceholders = true, $includeText = true) {
       $from = "";
 
       if (!empty($this->from)) {
-        $from .= $this->from['table'];
+      	
+      	// Allow the user to pass a QueryBuilder into from
+      	if($this->from['table'] instanceof self){
+      		$from .= self::BRACKET_OPEN . $this->from['table']->getQueryString($usePlaceholders) . self::BRACKET_CLOSE;
+      		
+      		if($usePlaceholders){
+      			$this->fromPlaceholderValues = $this->from['table']->getPlaceholderValues();
+      		}
+      	}else{
+      		$from .= $this->from['table'];
+      	}
 
         if (isset($this->from['alias'])) {
           $from .= " AS " . $this->from['alias'];
@@ -701,7 +720,7 @@
     private function criteriaNotBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND) {
       return $this->criteria($criteria, $column, array($min, $max), self::NOT_BETWEEN, $connector);
     }
-
+    
     /**
      * Returns the WHERE or HAVING portion of the query as a string.
      *
@@ -1463,7 +1482,7 @@
         $query .= $this->getSelectString();
 
         if (!empty($this->from)) {
-          $query .= " " . $this->getFromString();
+          $query .= " " . $this->getFromString($usePlaceholders);
         }
 
         if (!empty($this->where)) {
@@ -1500,7 +1519,7 @@
      * @uses   QueryBuilder::getHavingPlaceholderValues()
      */
     public function getPlaceholderValues() {
-      return array_merge($this->getWherePlaceholderValues(), $this->getHavingPlaceholderValues());
+      return array_merge($this->fromPlaceholderValues, $this->getWherePlaceholderValues(), $this->getHavingPlaceholderValues());
     }
 
     /**
