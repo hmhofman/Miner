@@ -1553,6 +1553,47 @@
     }
 
     /**
+     * Executes the query, but only returns the row count
+     * 
+     * @return int|false
+     * @uses QueryBuilder::$select
+     * @uses QueryBuilder::$orderBy
+     * @uses QueryBuilder::$limit
+     * @uses QueryBuilder::query()
+     */
+    public function queryGetRowCount(){
+    	
+    	// Save the existing select, order and limit arrays
+    	$old_select = $this->select;
+    	$old_order = $this->orderBy;
+    	$old_limit = $this->limit;
+    	
+    	// Reset the values
+    	$this->select = $this->orderBy = $this->limit = Array();
+    	
+    	// Add the new count select
+    	$this->select("COUNT(*)");
+
+    	// Run the query
+    	$result = $this->query();
+    	
+    	// Restore the values
+    	$this->select	= $old_select;
+    	$this->orderBy	= $old_order;
+    	$this->limit	= $old_limit;
+    	
+    	// Fetch the count from the query result
+    	if($result){
+    		$c = $result->fetchColumn();
+    		$result->closeCursor();
+    		return $c;
+    	}
+    	
+    	return false;
+    }
+    
+    
+    /**
      * Returns the full query string without value placeholders.
      *
      * @return string
