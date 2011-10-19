@@ -276,6 +276,13 @@
     }
 
     /**
+     * Allows initialization of the class via a static method
+     */
+    public static function initialize(){
+    	return new self();
+    }
+    
+    /**
      * Adds a SELECT column, table, or expression with optional alias.
      *
      * @param  string $column column name, table name, or expression
@@ -292,6 +299,8 @@
       			$this->select[$column] = $alias;
       		}
       	}
+      }else if($column instanceof self){
+      	$this->select["(" . $column->getQueryString(false) . ")"] = $alias;
       }else{
       	$this->select[$column] = $alias;
       }
