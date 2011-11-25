@@ -445,7 +445,7 @@
        * @return QueryBuilder
        */
       public function lockForUpdate(){
-	$this->lock = self::LOCK_IN_UPDATE;
+	$this->lock = self::LOCK_FOR_UPDATE;
 	return $this;
       }
     
