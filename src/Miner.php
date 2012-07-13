@@ -2160,6 +2160,44 @@
         return false;
       }
     }
+    
+    /**
+     * Executes the query, but only returns the row count
+     *
+     * @return int|false count of rows or false if no connection, or not a select query
+     */
+    public function queryGetRowCount(){
+      if($this->isSelect() && $this->getPdoConnection()){
+    
+        // Save the existing select, order and limit arrays
+        $old_select = $this->select;
+        $old_order = $this->orderBy;
+        $old_limit = $this->limit;
+    
+        // Reset the values
+        $this->select = $this->orderBy = $this->limit = Array();
+    
+        // Add the new count select
+        $this->select("COUNT(*)");
+
+        // Run the query
+        $result = $this->query();
+    
+        // Restore the values
+        $this->select   = $old_select;
+        $this->orderBy  = $old_order;
+        $this->limit    = $old_limit;
+    
+        // Fetch the count from the query result
+        if($result){
+          $c = $result->fetchColumn();
+          $result->closeCursor();
+          return $c;
+        }
+      }
+      return false;
+    }
+    
 
     /**
      * Get the full SQL statement without value placeholders.
