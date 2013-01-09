@@ -977,7 +977,7 @@
         $criteria = array($criteria);
       }
 
-      $join[] = array('table'    => $table,
+      $join = array('table'    => $table,
                             'criteria' => $criteria,
                             'type'     => $type,
                             'alias'    => $alias);
