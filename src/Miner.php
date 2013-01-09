@@ -530,8 +530,19 @@
      * @return Miner
      */
     public function select($column, $alias = null) {
-      $this->select[$column] = $alias;
-
+      if(is_array($column)){
+      	foreach($column as $column => $alias){
+      		if(is_int($column)){
+      			$this->select[$alias] = null;
+      		}else{
+      			$this->select[$column] = $alias;
+      		}
+      	}
+      }else if($column instanceof self){
+      	$this->select["(" . $column->getQueryString(false) . ")"] = $alias;
+      }else{
+      	$this->select[$column] = $alias;
+      }
       return $this;
     }
 
