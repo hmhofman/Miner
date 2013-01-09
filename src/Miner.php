@@ -923,10 +923,15 @@
         $criteria = array($criteria);
       }
 
-      $this->join[] = array('table'    => $table,
+      $join[] = array('table'    => $table,
                             'criteria' => $criteria,
                             'type'     => $type,
                             'alias'    => $alias);
+
+      // Dont add double joins to the same table
+      if((array_search($join, $this->join) === false)){
+      	$this->join[] = $join;
+      }
 
       return $this;
     }
