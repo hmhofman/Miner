@@ -6,6 +6,10 @@ class QueryBuilder extends Miner{
 	public function getQueryString($usePlaceholders = true){
 		return $this->getStatement($usePlaceholders);
 	}
+	
+	public function query(){
+		return $this->execute();
+	}
 
 	/**
 	* Adds a Lock in Share Mode to the query
