@@ -157,139 +157,139 @@
      *
      * @var PDO|null
      */
-    private $PdoConnection;
+    protected $PdoConnection;
 
     /**
      * Whether to automatically escape values.
      *
      * @var bool|null
      */
-    private $autoQuote;
+    protected $autoQuote;
 
     /**
      * Execution options like DISTINCT and SQL_CALC_FOUND_ROWS.
      *
      * @var array
      */
-    private $option;
+    protected $option;
     
     /**
      * Execution options that are appended to the end of the query like FOR UPDATE
      * @var array
      */
-    private $end_option;
+    protected $end_option;
 
     /**
      * Columns, tables, and expressions to SELECT from.
      *
      * @var array
      */
-    private $select;
+    protected $select;
 
     /**
      * Table to INSERT into.
      *
      * @var string
      */
-    private $insert;
+    protected $insert;
 
     /**
      * Table to REPLACE into.
      *
      * @var string
      */
-    private $replace;
+    protected $replace;
 
     /**
      * Table to UPDATE.
      *
      * @var string
      */
-    private $update;
+    protected $update;
 
     /**
      * Tables to DELETE from, or true if deleting from the FROM table.
      *
      * @var array|true
      */
-    private $delete;
+    protected $delete;
 
     /**
      * Column values to INSERT or UPDATE.
      *
      * @var array
      */
-    private $set;
+    protected $set;
 
     /**
      * Table to select FROM.
      *
      * @var array
      */
-    private $from;
+    protected $from;
 
     /**
      * JOIN tables and ON criteria.
      *
      * @var array
      */
-    private $join;
+    protected $join;
 
     /**
      * WHERE criteria.
      *
      * @var array
      */
-    private $where;
+    protected $where;
 
     /**
      * Columns to GROUP BY.
      *
      * @var array
      */
-    private $groupBy;
+    protected $groupBy;
 
     /**
      * HAVING criteria.
      *
      * @var array
      */
-    private $having;
+    protected $having;
 
     /**
      * Columns to ORDER BY.
      *
      * @var array
      */
-    private $orderBy;
+    protected $orderBy;
 
     /**
      * Number of rows to return from offset.
      *
      * @var array
      */
-    private $limit;
+    protected $limit;
 
     /**
      * SET placeholder values.
      *
      * @var array
      */
-    private $setPlaceholderValues;
+    protected $setPlaceholderValues;
 
     /**
      * WHERE placeholder values.
      *
      * @var array
      */
-    private $wherePlaceholderValues;
+    protected $wherePlaceholderValues;
 
     /**
      * HAVING placeholder values.
      *
      * @var array
      */
-    private $havingPlaceholderValues;
+    protected $havingPlaceholderValues;
 
     /**
      * Constructor.
@@ -862,7 +862,7 @@
      *
      * @return bool whether the delete table is FROM
      */
-    private function isDeleteTableFrom() {
+    protected function isDeleteTableFrom() {
       return $this->delete === true;
     }
 
@@ -1070,7 +1070,7 @@
      * @param  string $column current column name
      * @return string ON join criteria
      */
-    private function getJoinCriteriaUsingPreviousTable($joinIndex, $table, $column) {
+    protected function getJoinCriteriaUsingPreviousTable($joinIndex, $table, $column) {
       $joinCriteria = "";
       $previousJoinIndex = $joinIndex - 1;
 
@@ -1186,7 +1186,7 @@
      * @param  string $connector optional logical connector, default AND
      * @return Miner
      */
-    private function openCriteria(array &$criteria, $connector = self::LOGICAL_AND) {
+    protected function openCriteria(array &$criteria, $connector = self::LOGICAL_AND) {
       $criteria[] = array('bracket'   => self::BRACKET_OPEN,
                           'connector' => $connector);
 
@@ -1200,7 +1200,7 @@
      * @param  array $criteria WHERE or HAVING criteria
      * @return Miner
      */
-    private function closeCriteria(array &$criteria) {
+    protected function closeCriteria(array &$criteria) {
       $criteria[] = array('bracket'   => self::BRACKET_CLOSE,
                           'connector' => null);
 
@@ -1218,7 +1218,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteria(array &$criteria, $column, $value, $operator = self::EQUALS,
+    protected function criteria(array &$criteria, $column, $value, $operator = self::EQUALS,
                               $connector = self::LOGICAL_AND, $quote = null) {
       $criteria[] = array('column'    => $column,
                           'value'     => $value,
@@ -1239,7 +1239,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function orCriteria(array &$criteria, $column, $value, $operator = self::EQUALS, $quote = null) {
+    protected function orCriteria(array &$criteria, $column, $value, $operator = self::EQUALS, $quote = null) {
       return $this->criteria($criteria, $column, $value, $operator, self::LOGICAL_OR, $quote);
     }
 
@@ -1253,7 +1253,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
+    protected function criteriaIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
                                 $quote = null) {
       return $this->criteria($criteria, $column, $values, self::IN, $connector, $quote);
     }
@@ -1268,7 +1268,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaNotIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
+    protected function criteriaNotIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
                                    $quote = null) {
       return $this->criteria($criteria, $column, $values, self::NOT_IN, $connector, $quote);
     }
@@ -1284,7 +1284,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
+    protected function criteriaBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
                                      $quote = null) {
       return $this->criteria($criteria, $column, array($min, $max), self::BETWEEN, $connector, $quote);
     }
@@ -1300,7 +1300,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaNotBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
+    protected function criteriaNotBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
                                         $quote = null) {
       return $this->criteria($criteria, $column, array($min, $max), self::NOT_BETWEEN, $connector, $quote);
     }
@@ -1313,7 +1313,7 @@
      * @param  array $placeholderValues optional placeholder values array
      * @return string WHERE or HAVING portion of the statement
      */
-    private function getCriteriaString(array &$criteria, $usePlaceholders = true,
+    protected function getCriteriaString(array &$criteria, $usePlaceholders = true,
                                        array &$placeholderValues = array()) {
       $statement = "";
       $placeholderValues = array();
@@ -2055,7 +2055,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full SELECT statement
      */
-    private function getSelectStatement($usePlaceholders = true) {
+    protected function getSelectStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isSelect()) {
@@ -2101,7 +2101,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full INSERT statement
      */
-    private function getInsertStatement($usePlaceholders = true) {
+    protected function getInsertStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isInsert()) {
@@ -2127,7 +2127,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full REPLACE statement
      */
-    private function getReplaceStatement($usePlaceholders = true) {
+    protected function getReplaceStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isReplace()) {
@@ -2153,7 +2153,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full UPDATE statement
      */
-    private function getUpdateStatement($usePlaceholders = true) {
+    protected function getUpdateStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isUpdate()) {
@@ -2194,7 +2194,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full DELETE statement
      */
-    private function getDeleteStatement($usePlaceholders = true) {
+    protected function getDeleteStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isDelete()) {
