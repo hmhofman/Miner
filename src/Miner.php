@@ -146,6 +146,11 @@
       * Specifies that the where() column contains a subquery
       */
     const SUB_QUERY = "subquery";
+    
+    /**
+      * Specifies that the where() column contains a subquery IN
+      */
+    const SUB_QUERY_IN = "subquery_in";
 
     /**
      * PDO database connection to use in executing the statement.
