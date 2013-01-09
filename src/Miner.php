@@ -143,6 +143,11 @@
     const BRACKET_CLOSE = ")";
 
     /**
+      * Specifies that the where() column contains a subquery
+      */
+    const SUB_QUERY = "subquery";
+
+    /**
      * PDO database connection to use in executing the statement.
      *
      * @var PDO|null
