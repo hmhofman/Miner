@@ -375,6 +375,10 @@
     public function quote($value) {
       $PdoConnection = $this->getPdoConnection();
 
+      if($value instanceof \DateTime){
+      	$value = $value->format('Y-m-d H:i');
+      }
+
       // If a PDO database connection is set, use it to quote the value using
       // the underlying database. Otherwise, quote it manually.
       if ($PdoConnection) {
