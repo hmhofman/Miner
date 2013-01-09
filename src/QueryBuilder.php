@@ -12,7 +12,7 @@ class QueryBuilder extends Miner{
 	* @return QueryBuilder
 	*/
 	public function lockInShareMode(){
-		$this->option('LOCK IN SHARE MODE');
+		$this->endOption('LOCK IN SHARE MODE');
 		return $this;
 	}
 
@@ -21,7 +21,7 @@ class QueryBuilder extends Miner{
 	* @return QueryBuilder
 	*/
 	public function lockForUpdate(){
-		$this->option('FOR UPDATE');
+		$this->endOption('FOR UPDATE');
 		return $this;
 	}    
 

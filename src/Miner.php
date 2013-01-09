@@ -162,6 +162,12 @@
      * @var array
      */
     private $option;
+    
+    /**
+     * Execution options that are appended to the end of the query like FOR UPDATE
+     * @var array
+     */
+    private $end_option;
 
     /**
      * Columns, tables, and expressions to SELECT from.
@@ -284,6 +290,7 @@
      */
     public function __construct(PDO $PdoConnection = null, $autoQuote = true) {
       $this->option = array();
+      $this->end_option = array();
       $this->select = array();
       $this->delete = array();
       $this->set = array();
@@ -403,6 +410,17 @@
 
       return $this;
     }
+    
+    /**
+     * Add an execution option to the end of the query like FOR UPDATE
+     * @param string $option execution option to add
+     * @return Miner
+     */
+    public function endOption($option){
+	$this->end_option[] = $option;
+	
+	return $this;
+    }
 
     /**
      * Get the execution options portion of the statement as a string.
@@ -427,6 +445,28 @@
     }
 
     /**
+     * Get the end execution options portion of the statement as a string.
+     *
+     * @param  bool $includeTrailingSpace optional include space after options
+     * @return string execution options portion of the statement
+     */
+    public function getEndOptionsString($includeTrailingSpace = false) {
+      $statement = "";
+
+      if (!$this->end_option) {
+        return $statement;
+      }
+
+      $statement .= implode(' ', $this->end_option);
+
+      if ($includeTrailingSpace) {
+        $statement .= " ";
+      }
+
+      return $statement;
+    }
+    
+    /**
      * Merge this Miner's execution options into the given Miner.
      *
      * @param  Miner $Miner to merge into
@@ -435,6 +475,20 @@
     public function mergeOptionsInto(Miner $Miner) {
       foreach ($this->option as $option) {
         $Miner->option($option);
+      }
+
+      return $Miner;
+    }
+    
+    /**
+     * Merge this Miner's end execution options into the given Miner.
+     *
+     * @param  Miner $Miner to merge into
+     * @return Miner
+     */
+    public function mergeEndOptionsInto(Miner $Miner) {
+      foreach ($this->end_option as $option) {
+        $Miner->end_option($option);
       }
 
       return $Miner;
@@ -1813,6 +1867,10 @@
       if ($this->limit) {
         $Miner->limit($this->getLimit(), $this->getLimitOffset());
       }
+      
+      foreach ($this->end_option as $option) {
+        $Miner->endOption($option);
+      }
 
       return $Miner;
     }
@@ -2008,6 +2066,10 @@
       if ($this->limit) {
         $statement .= " " . $this->getLimitString();
       }
+      
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
+      }
 
       return $statement;
     }
@@ -2030,6 +2092,10 @@
       if ($this->set) {
         $statement .= " " . $this->getSetString($usePlaceholders);
       }
+      
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
+      }
 
       return $statement;
     }
@@ -2051,6 +2117,10 @@
 
       if ($this->set) {
         $statement .= " " . $this->getSetString($usePlaceholders);
+      }
+
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
       }
 
       return $statement;
@@ -2089,6 +2159,10 @@
           $statement .= " " . $this->getLimitString();
         }
       }
+      
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
+      }
 
       return $statement;
     }
@@ -2126,6 +2200,10 @@
         if ($this->limit) {
           $statement .= " " . $this->getLimitString();
         }
+      }
+      
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
       }
 
       return $statement;
