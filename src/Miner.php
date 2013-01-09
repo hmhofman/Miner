@@ -1071,7 +1071,12 @@
         return $statement;
       }
 
-      $statement .= $this->getFrom();
+      $from = $this->getFrom();
+      if($from instanceof self){
+	$from = self::BRACKET_OPEN . $from . self::BRACKET_CLOSE;
+      }
+
+      $statement .= $from;
 
       if ($this->getFromAlias()) {
         $statement .= " AS " . $this->getFromAlias();
@@ -1079,7 +1084,7 @@
 
       // Add any JOINs.
       $statement .= " " . $this->getJoinString();
-
+	
       $statement  = rtrim($statement);
 
       if ($includeText && $statement) {
@@ -1297,6 +1302,28 @@
               $value = $criterion['value'];
 
               break;
+
+              case self::SUB_QUERY_IN:
+                $value = "";
+                $criterion['operator'] = self::IN;
+                 
+                // Test if the subquery is another QueryBuilder
+                if($criterion['value'] instanceof self){
+                  if($usePlaceholders){
+                    $value        = $criterion['value']->getQueryString();
+                    $placeholderValues  = array_merge($placeholderValues, $criterion['value']->getPlaceholderValues());
+                  }else{
+                    $value =  $criterion['value']->getQueryString(false);
+                  }
+                }else{
+                  // Raw sql subquery
+                  $value = $criterion['value'];
+                }
+                 
+                // Wrap the subquery
+                $value = self::BRACKET_OPEN . $value . self::BRACKET_CLOSE;
+		
+                break;
 
             default:
               if ($usePlaceholders && $autoQuote) {
