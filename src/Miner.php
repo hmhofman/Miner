@@ -291,6 +291,12 @@
      */
     protected $havingPlaceholderValues;
 
+	/**
+	 * On Duplicate Key values
+	 * @var Miner 
+	 */
+	protected $onDuplicateKeyValue;
+	
     /**
      * Constructor.
      *
@@ -936,6 +942,15 @@
      */
     public function getSetPlaceholderValues() {
       return $this->setPlaceholderValues;
+    }
+    
+	/**
+	 *  Provides support for ON DUPLICATE KEY
+	 * @param Miner $miner A miner instance with SET values to update
+	 */
+    public function onDuplicateKey(Miner $miner){
+	$this->onDuplicateKeyValue = $miner;
+	return $this;
     }
 
     /**
@@ -2114,6 +2129,10 @@
         $statement .= " " . $this->getSetString($usePlaceholders);
       }
       
+	  if($this->onDuplicateKeyValue){
+		 $statement .= " ON DUPLICATE KEY UPDATE " . $this->onDuplicateKeyValue->getSetString($usePlaceholders, false); 
+	  }
+	  
       if($this->end_option) {
 	$statement .= " " . $this->getEndOptionsString();
       }
@@ -2266,7 +2285,9 @@
     public function getPlaceholderValues() {
       return array_merge($this->getSetPlaceholderValues(),
                          $this->getWherePlaceholderValues(),
-                         $this->getHavingPlaceholderValues());
+                         $this->getHavingPlaceholderValues(),
+						 !empty($this->onDuplicateKeyValue) ? $this->onDuplicateKeyValue->getSetPlaceholderValues() : Array()
+			  );
     }
 
     /**
