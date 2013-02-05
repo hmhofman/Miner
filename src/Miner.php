@@ -2323,7 +2323,7 @@
      * @return int|false count of rows or false if no connection, or not a select query
      */
     public function queryGetRowCount(){
-      if($this->isSelect() && $this->getPdoConnection()){
+      if($this->getPdoConnection()){
     
         // Save the existing select, order and limit arrays
         $old_select = $this->select;
