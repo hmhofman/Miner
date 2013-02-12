@@ -153,6 +153,11 @@
     const SUB_QUERY_IN = "subquery_in";
 
     /**
+      * Handles raw where clauses
+      */
+    const RAW_WHERE = "RAW_WHERE";
+
+    /**
      * PDO database connection to use in executing the statement.
      *
      * @var PDO|null
@@ -1423,6 +1428,18 @@
                 $value = self::BRACKET_OPEN . $value . self::BRACKET_CLOSE;
 		
                 break;
+		
+		case self::RAW_WHERE:
+			$criterion['operator'] = '';
+			$value = $criterion['value'];
+			
+			if($usePlaceholders){
+				$placeholderValues[] = $criterion['value'];
+			}else{
+				$criterion['column'] = str_replace("?", $this->quote($criterion['value']), $criterion['column']);
+			}
+			
+		break;
 
             default:
               if ($usePlaceholders && $autoQuote) {
