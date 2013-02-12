@@ -2,6 +2,9 @@
 require_once(__DIR__ . "/Miner.php");
 class QueryBuilder extends Miner{
 	
+	public static function initialize(){
+		return new self();
+	}
 
 	public function getQueryString($usePlaceholders = true){
 		return $this->getStatement($usePlaceholders);
