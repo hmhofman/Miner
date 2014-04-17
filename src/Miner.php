@@ -275,6 +275,8 @@
      */
     private $havingPlaceholderValues;
 
+    private $_rowsFound;
+
     /**
      * Constructor.
      *
@@ -381,7 +383,7 @@
         return $PdoConnection->quote($value);
       }
       elseif (is_numeric($value)) {
-        return $value;        
+        return $value;
       }
       elseif (is_null($value)) {
         return "NULL";
@@ -2143,26 +2145,66 @@
      * @return PDOStatement|false executed statement or false if failed
      */
     public function execute() {
-      $PdoConnection = $this->getPdoConnection();
+      $this->_rowsFound = 0;
+      if (class_exists('database')) {
+        //Check if there is a common Database Class...
+        $database = database::getInstance();
+        $resultset = $database->query($this->getStatement(), $this->getPlaceholderValues());
+        if (in_array('SQL_CALC_FOUND_ROWS',$this->option)) {
+          try {
+            $dummy = $database->query("SELECT FOUND_ROWS() as rowcount");
+            if (is_array($dummy) && count($dummy))
+              $this->_rowsFound = $dummy[0]['rowcount'];
+          }
+          catch(Exception $err){}
+        }
+        if (!$this->_rowsFound || $this->_rowsFound == 1)
+          $this->_rowsFound = count($resultset);
 
-      // Without a PDO database connection, the statement cannot be executed.
-      if (!$PdoConnection) {
-        return false;
+        return $resultset;
       }
+      elseif (class_exists('PDO') && defined('PDO::ATTR_DEFAULT_FETCH_MODE')) {
+        //Else try to execute this by PDO; only if PDO is compiled i PHP.
+        $PdoConnection = $this->getPdoConnection();
 
-      $statement = $this->getStatement();
+        // Without a PDO database connection, the statement cannot be executed.
+        if (!$PdoConnection) {
+          return false;
+        }
 
-      // Only execute if a statement is set.
-      if ($statement) {
-        $PdoStatement = $PdoConnection->prepare($statement);
-        $PdoStatement->execute($this->getPlaceholderValues());
+        $statement = $this->getStatement();
 
-        return $PdoStatement;
+        // Only execute if a statement is set.
+        if ($statement) {
+          $PdoStatement = $PdoConnection->prepare($statement);
+          $PdoStatement->execute($this->getPlaceholderValues());
+
+          if (in_array('SQL_CALC_FOUND_ROWS',$this->option)) {
+            try {
+              $PdoFoundRows = $PdoConnection->prepare("SELECT FOUND_ROWS() AS rowcount");
+              $PdoFoundRows->execute();
+              $this->_rowsFound = intval($PdoFoundRows->fetchColumn());
+              if (!is_numeric($this->_rowsFound) || $this->_rowsFound <= 1) {
+                $this->_rowsFound = $PdoStatement->rowCount();
+              }
+            }
+            catch(Exception $err){}
+          }
+          return $PdoStatement;
+        }
+        else {
+          return false;
+        }
       }
       else {
         return false;
       }
     }
+
+    public function rowsFound(){
+      return $this->_rowsFound;
+    }
+
 
     /**
      * Get the full SQL statement without value placeholders.
