@@ -530,7 +530,13 @@
      */
     public function insert($table) {
       $this->insert = $table;
-
+      $this->set('syscreated', 'NULL', FALSE);
+      if (isset($_SESSION) && isset($_SESSION['user']['id'])) {
+          $this->set('syscreator', $_SESSION['user']['id']);
+      }
+      else {
+          $this->set('syscreator', 0);
+      }
       return $this;
     }
 
@@ -652,6 +658,13 @@
      */
     public function update($table) {
       $this->update = $table;
+      $this->set('sysmodified', 'NULL', FALSE);
+      if (isset($_SESSION) && isset($_SESSION['user']['id'])) {
+          $this->set('sysmodifier', $_SESSION['user']['id']);
+      }
+      else {
+          $this->set('sysmodifier', 0);
+      }
 
       return $this;
     }
@@ -2150,9 +2163,31 @@
         //Check if there is a common Database Class...
         $database = database::getInstance();
         $resultset = $database->query($this->getStatement(), $this->getPlaceholderValues());
+        if ($resultset === FALSE || $resultset === NULL) {
+            if ($database->lastError) {
+                $lastError = $database->lastError;
+                $retry = FALSE;
+                if (!is_string($lastError))
+                    $lastError = print_r($lastError, true);
+                if ((strpos($lastError, '1054') !== FALSE) &&
+                    (strpos($lastError, 'syscreat') !== FALSE) ) {
+                    $database->query("ALTER TABLE {$this->insert} ADD COLUMN `syscreator` INT(11) default NULL", array() );
+                    $database->query("ALTER TABLE {$this->insert} ADD COLUMN `syscreated` TIMESTAMP NOT NULL  default '0000-00-00 00:00:00'", array());
+                    $retry = TRUE;
+                }
+                if ((strpos($lastError, '1054') !== FALSE) &&
+                    (strpos($lastError, 'sysmodifi') !== FALSE) ) {
+                    $database->query("ALTER TABLE {$this->update} ADD COLUMN `sysmodifier` INT(11) default NULL", array());
+                    $database->query("ALTER TABLE {$this->update} ADD COLUMN `sysmodified` TIMESTAMP NOT NULL default CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP", array());
+                    $retry = TRUE;
+                }
+                if ($retry)
+                    $resultset = $database->query($this->getStatement(), $this->getPlaceholderValues());
+            }
+        }
         if (in_array('SQL_CALC_FOUND_ROWS',$this->option)) {
           try {
-            $dummy = $database->query("SELECT FOUND_ROWS() as rowcount");
+            $dummy = $database->query("SELECT FOUND_ROWS() as rowcount", array());
             if (is_array($dummy) && count($dummy))
               $this->_rowsFound = $dummy[0]['rowcount'];
           }
@@ -2160,7 +2195,6 @@
         }
         if (!$this->_rowsFound || $this->_rowsFound == 1)
           $this->_rowsFound = count($resultset);
-
         return $resultset;
       }
       elseif (class_exists('PDO') && defined('PDO::ATTR_DEFAULT_FETCH_MODE')) {
@@ -2177,7 +2211,31 @@
         // Only execute if a statement is set.
         if ($statement) {
           $PdoStatement = $PdoConnection->prepare($statement);
-          $PdoStatement->execute($this->getPlaceholderValues());
+          $result = $PdoStatement->execute($this->getPlaceholderValues());
+          if (!$result) {
+            if ($PdoStatement->errorInfo) {
+                $lastError = $PdoStatement->errorInfo;
+                $retry = FALSE;
+                if (!is_string($lastError))
+                    $lastError = print_r($lastError, true);
+                if ((strpos($lastError, 'syscreat') !== FALSE) ) {
+                    $tmpStmt = $PdoConnection->prepare("ALTER TABLE {$this->insert} ADD COLUMN `syscreator` INT(11) default NULL");
+                    $tmpStmt->execute();
+                    $tmpStmt = $PdoConnection->prepare("ALTER TABLE {$this->insert} ADD COLUMN `syscreated` TIMESTAMP NOT NULL  default '0000-00-00 00:00:00'");
+                    $tmpStmt->execute();
+                    $retry = TRUE;
+                }
+                if ((strpos($lastError, 'sysmodifi') !== FALSE) ) {
+                    $tmpStmt = $PdoConnection->prepare("ALTER TABLE {$this->update} ADD COLUMN `sysmodifier` INT(11) default NULL");
+                    $tmpStmt->execute();
+                    $tmpStmt = $PdoConnection->prepare("ALTER TABLE {$this->update} ADD COLUMN `sysmodified` TIMESTAMP NOT NULL  default '0000-00-00 00:00:00'");
+                    $tmpStmt->execute();
+                    $retry = TRUE;
+                }
+                if ($retry)
+                    $resultset = $PdoStatement->execute($this->getPlaceholderValues());
+            }
+          }
 
           if (in_array('SQL_CALC_FOUND_ROWS',$this->option)) {
             try {
