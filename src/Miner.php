@@ -143,139 +143,166 @@
     const BRACKET_CLOSE = ")";
 
     /**
+      * Specifies that the where() column contains a subquery
+      */
+    const SUB_QUERY = "subquery";
+
+    /**
+      * Specifies that the where() column contains a subquery IN
+      */
+    const SUB_QUERY_IN = "subquery_in";
+
+    /**
+      * Handles raw where clauses
+      */
+    const RAW_WHERE = "RAW_WHERE";
+
+    /**
      * PDO database connection to use in executing the statement.
      *
      * @var PDO|null
      */
-    private $PdoConnection;
+    protected $PdoConnection;
 
     /**
      * Whether to automatically escape values.
      *
      * @var bool|null
      */
-    private $autoQuote;
+    protected $autoQuote;
 
     /**
      * Execution options like DISTINCT and SQL_CALC_FOUND_ROWS.
      *
      * @var array
      */
-    private $option;
+    protected $option;
+
+    /**
+     * Execution options that are appended to the end of the query like FOR UPDATE
+     * @var array
+     */
+    protected $end_option;
 
     /**
      * Columns, tables, and expressions to SELECT from.
      *
      * @var array
      */
-    private $select;
+    protected $select;
 
     /**
      * Table to INSERT into.
      *
      * @var string
      */
-    private $insert;
+    protected $insert;
 
     /**
      * Table to REPLACE into.
      *
      * @var string
      */
-    private $replace;
+    protected $replace;
 
     /**
      * Table to UPDATE.
      *
      * @var string
      */
-    private $update;
+    protected $update;
 
     /**
      * Tables to DELETE from, or true if deleting from the FROM table.
      *
      * @var array|true
      */
-    private $delete;
+    protected $delete;
 
     /**
      * Column values to INSERT or UPDATE.
      *
      * @var array
      */
-    private $set;
+    protected $set;
 
     /**
      * Table to select FROM.
      *
      * @var array
      */
-    private $from;
+    protected $from;
 
     /**
      * JOIN tables and ON criteria.
      *
      * @var array
      */
-    private $join;
+    protected $join;
 
     /**
      * WHERE criteria.
      *
      * @var array
      */
-    private $where;
+    protected $where;
 
     /**
      * Columns to GROUP BY.
      *
      * @var array
      */
-    private $groupBy;
+    protected $groupBy;
 
     /**
      * HAVING criteria.
      *
      * @var array
      */
-    private $having;
+    protected $having;
 
     /**
      * Columns to ORDER BY.
      *
      * @var array
      */
-    private $orderBy;
+    protected $orderBy;
 
     /**
      * Number of rows to return from offset.
      *
      * @var array
      */
-    private $limit;
+    protected $limit;
 
     /**
      * SET placeholder values.
      *
      * @var array
      */
-    private $setPlaceholderValues;
+    protected $setPlaceholderValues;
 
     /**
      * WHERE placeholder values.
      *
      * @var array
      */
-    private $wherePlaceholderValues;
+    protected $wherePlaceholderValues;
 
     /**
      * HAVING placeholder values.
      *
      * @var array
      */
-    private $havingPlaceholderValues;
+    protected $havingPlaceholderValues;
 
     private $_rowsFound;
+
+	/**
+	 * On Duplicate Key values
+	 * @var Miner
+	 */
+	protected $onDuplicateKeyValue;
 
     /**
      * Constructor.
@@ -286,6 +313,7 @@
      */
     public function __construct(PDO $PdoConnection = null, $autoQuote = true) {
       $this->option = array();
+      $this->end_option = array();
       $this->select = array();
       $this->delete = array();
       $this->set = array();
@@ -377,6 +405,10 @@
     public function quote($value) {
       $PdoConnection = $this->getPdoConnection();
 
+      if($value instanceof \DateTime){
+      	$value = $value->format('Y-m-d H:i');
+      }
+
       // If a PDO database connection is set, use it to quote the value using
       // the underlying database. Otherwise, quote it manually.
       if ($PdoConnection) {
@@ -406,6 +438,17 @@
     }
 
     /**
+     * Add an execution option to the end of the query like FOR UPDATE
+     * @param string $option execution option to add
+     * @return Miner
+     */
+    public function endOption($option){
+	$this->end_option[] = $option;
+
+	return $this;
+    }
+
+    /**
      * Get the execution options portion of the statement as a string.
      *
      * @param  bool $includeTrailingSpace optional include space after options
@@ -428,6 +471,28 @@
     }
 
     /**
+     * Get the end execution options portion of the statement as a string.
+     *
+     * @param  bool $includeTrailingSpace optional include space after options
+     * @return string execution options portion of the statement
+     */
+    public function getEndOptionsString($includeTrailingSpace = false) {
+      $statement = "";
+
+      if (!$this->end_option) {
+        return $statement;
+      }
+
+      $statement .= implode(' ', $this->end_option);
+
+      if ($includeTrailingSpace) {
+        $statement .= " ";
+      }
+
+      return $statement;
+    }
+
+    /**
      * Merge this Miner's execution options into the given Miner.
      *
      * @param  Miner $Miner to merge into
@@ -436,6 +501,20 @@
     public function mergeOptionsInto(Miner $Miner) {
       foreach ($this->option as $option) {
         $Miner->option($option);
+      }
+
+      return $Miner;
+    }
+
+    /**
+     * Merge this Miner's end execution options into the given Miner.
+     *
+     * @param  Miner $Miner to merge into
+     * @return Miner
+     */
+    public function mergeEndOptionsInto(Miner $Miner) {
+      foreach ($this->end_option as $option) {
+        $Miner->end_option($option);
       }
 
       return $Miner;
@@ -467,8 +546,19 @@
      * @return Miner
      */
     public function select($column, $alias = null) {
-      $this->select[$column] = $alias;
-
+      if(is_array($column)){
+      	foreach($column as $column => $alias){
+      		if(is_int($column)){
+      			$this->select[$alias] = null;
+      		}else{
+      			$this->select[$column] = $alias;
+      		}
+      	}
+      }else if($column instanceof self){
+      	$this->select["(" . $column->getQueryString(false) . ")"] = $alias;
+      }else{
+      	$this->select[$column] = $alias;
+      }
       return $this;
     }
 
@@ -801,7 +891,7 @@
      *
      * @return bool whether the delete table is FROM
      */
-    private function isDeleteTableFrom() {
+    protected function isDeleteTableFrom() {
       return $this->delete === true;
     }
 
@@ -877,6 +967,15 @@
       return $this->setPlaceholderValues;
     }
 
+	  /**
+	   *  Provides support for ON DUPLICATE KEY
+	   * @param Miner $miner A miner instance with SET values to update
+	   */
+    public function onDuplicateKey(Miner $miner){
+	    $this->onDuplicateKeyValue = $miner;
+	    return $this;
+    }
+
     /**
      * Set the FROM table with optional alias.
      *
@@ -937,10 +1036,15 @@
         $criteria = array($criteria);
       }
 
-      $this->join[] = array('table'    => $table,
+      $join = array('table'    => $table,
                             'criteria' => $criteria,
                             'type'     => $type,
                             'alias'    => $alias);
+
+      // Dont add double joins to the same table
+      if((array_search($join, $this->join) === false)){
+      	$this->join[] = $join;
+      }
 
       return $this;
     }
@@ -1004,7 +1108,7 @@
      * @param  string $column current column name
      * @return string ON join criteria
      */
-    private function getJoinCriteriaUsingPreviousTable($joinIndex, $table, $column) {
+    protected function getJoinCriteriaUsingPreviousTable($joinIndex, $table, $column) {
       $joinCriteria = "";
       $previousJoinIndex = $joinIndex - 1;
 
@@ -1089,7 +1193,12 @@
         return $statement;
       }
 
-      $statement .= $this->getFrom();
+      $from = $this->getFrom();
+      if($from instanceof self){
+	$from = self::BRACKET_OPEN . $from . self::BRACKET_CLOSE;
+      }
+
+      $statement .= $from;
 
       if ($this->getFromAlias()) {
         $statement .= " AS " . $this->getFromAlias();
@@ -1115,7 +1224,7 @@
      * @param  string $connector optional logical connector, default AND
      * @return Miner
      */
-    private function openCriteria(array &$criteria, $connector = self::LOGICAL_AND) {
+    protected function openCriteria(array &$criteria, $connector = self::LOGICAL_AND) {
       $criteria[] = array('bracket'   => self::BRACKET_OPEN,
                           'connector' => $connector);
 
@@ -1129,7 +1238,7 @@
      * @param  array $criteria WHERE or HAVING criteria
      * @return Miner
      */
-    private function closeCriteria(array &$criteria) {
+    protected function closeCriteria(array &$criteria) {
       $criteria[] = array('bracket'   => self::BRACKET_CLOSE,
                           'connector' => null);
 
@@ -1147,7 +1256,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteria(array &$criteria, $column, $value, $operator = self::EQUALS,
+    protected function criteria(array &$criteria, $column, $value, $operator = self::EQUALS,
                               $connector = self::LOGICAL_AND, $quote = null) {
       $criteria[] = array('column'    => $column,
                           'value'     => $value,
@@ -1168,7 +1277,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function orCriteria(array &$criteria, $column, $value, $operator = self::EQUALS, $quote = null) {
+    protected function orCriteria(array &$criteria, $column, $value, $operator = self::EQUALS, $quote = null) {
       return $this->criteria($criteria, $column, $value, $operator, self::LOGICAL_OR, $quote);
     }
 
@@ -1182,7 +1291,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
+    protected function criteriaIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
                                 $quote = null) {
       return $this->criteria($criteria, $column, $values, self::IN, $connector, $quote);
     }
@@ -1197,7 +1306,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaNotIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
+    protected function criteriaNotIn(array &$criteria, $column, array $values, $connector = self::LOGICAL_AND,
                                    $quote = null) {
       return $this->criteria($criteria, $column, $values, self::NOT_IN, $connector, $quote);
     }
@@ -1213,7 +1322,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
+    protected function criteriaBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
                                      $quote = null) {
       return $this->criteria($criteria, $column, array($min, $max), self::BETWEEN, $connector, $quote);
     }
@@ -1229,7 +1338,7 @@
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    private function criteriaNotBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
+    protected function criteriaNotBetween(array &$criteria, $column, $min, $max, $connector = self::LOGICAL_AND,
                                         $quote = null) {
       return $this->criteria($criteria, $column, array($min, $max), self::NOT_BETWEEN, $connector, $quote);
     }
@@ -1242,7 +1351,7 @@
      * @param  array $placeholderValues optional placeholder values array
      * @return string WHERE or HAVING portion of the statement
      */
-    private function getCriteriaString(array &$criteria, $usePlaceholders = true,
+    protected function getCriteriaString(array &$criteria, $usePlaceholders = true,
                                        array &$placeholderValues = array()) {
       $statement = "";
       $placeholderValues = array();
@@ -1315,6 +1424,40 @@
               $value = $criterion['value'];
 
               break;
+
+              case self::SUB_QUERY_IN:
+                $value = "";
+                $criterion['operator'] = self::IN;
+
+                // Test if the subquery is another QueryBuilder
+                if($criterion['value'] instanceof self){
+                  if($usePlaceholders){
+                    $value        = $criterion['value']->getQueryString();
+                    $placeholderValues  = array_merge($placeholderValues, $criterion['value']->getPlaceholderValues());
+                  }else{
+                    $value =  $criterion['value']->getQueryString(false);
+                  }
+                }else{
+                  // Raw sql subquery
+                  $value = $criterion['value'];
+                }
+
+                // Wrap the subquery
+                $value = self::BRACKET_OPEN . $value . self::BRACKET_CLOSE;
+
+                break;
+
+		case self::RAW_WHERE:
+			$criterion['operator'] = '';
+			$value = $criterion['value'];
+
+			if($usePlaceholders){
+				$placeholderValues[] = $criterion['value'];
+			}else{
+				$criterion['column'] = str_replace("?", $this->quote($criterion['value']), $criterion['column']);
+			}
+
+		break;
 
             default:
               if ($usePlaceholders && $autoQuote) {
@@ -1796,6 +1939,10 @@
         $Miner->limit($this->getLimit(), $this->getLimitOffset());
       }
 
+      foreach ($this->end_option as $option) {
+        $Miner->endOption($option);
+      }
+
       return $Miner;
     }
 
@@ -1958,7 +2105,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full SELECT statement
      */
-    private function getSelectStatement($usePlaceholders = true) {
+    protected function getSelectStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isSelect()) {
@@ -1991,6 +2138,10 @@
         $statement .= " " . $this->getLimitString();
       }
 
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
+      }
+
       return $statement;
     }
 
@@ -2000,7 +2151,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full INSERT statement
      */
-    private function getInsertStatement($usePlaceholders = true) {
+    protected function getInsertStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isInsert()) {
@@ -2013,6 +2164,14 @@
         $statement .= " " . $this->getSetString($usePlaceholders);
       }
 
+	  if($this->onDuplicateKeyValue){
+		 $statement .= " ON DUPLICATE KEY UPDATE " . $this->onDuplicateKeyValue->getSetString($usePlaceholders, false);
+	  }
+
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
+      }
+
       return $statement;
     }
 
@@ -2022,7 +2181,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full REPLACE statement
      */
-    private function getReplaceStatement($usePlaceholders = true) {
+    protected function getReplaceStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isReplace()) {
@@ -2035,6 +2194,10 @@
         $statement .= " " . $this->getSetString($usePlaceholders);
       }
 
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
+      }
+
       return $statement;
     }
 
@@ -2044,7 +2207,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full UPDATE statement
      */
-    private function getUpdateStatement($usePlaceholders = true) {
+    protected function getUpdateStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isUpdate()) {
@@ -2072,6 +2235,10 @@
         }
       }
 
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
+      }
+
       return $statement;
     }
 
@@ -2081,7 +2248,7 @@
      * @param  bool $usePlaceholders optional use ? placeholders, default true
      * @return string full DELETE statement
      */
-    private function getDeleteStatement($usePlaceholders = true) {
+    protected function getDeleteStatement($usePlaceholders = true) {
       $statement = "";
 
       if (!$this->isDelete()) {
@@ -2108,6 +2275,10 @@
         if ($this->limit) {
           $statement .= " " . $this->getLimitString();
         }
+      }
+
+      if($this->end_option) {
+	$statement .= " " . $this->getEndOptionsString();
       }
 
       return $statement;
@@ -2149,7 +2320,9 @@
     public function getPlaceholderValues() {
       return array_merge($this->getSetPlaceholderValues(),
                          $this->getWherePlaceholderValues(),
-                         $this->getHavingPlaceholderValues());
+                         $this->getHavingPlaceholderValues(),
+						 !empty($this->onDuplicateKeyValue) ? $this->onDuplicateKeyValue->getSetPlaceholderValues() : Array()
+			  );
     }
 
     /**
@@ -2258,6 +2431,44 @@
         return false;
       }
     }
+
+    /**
+     * Executes the query, but only returns the row count
+     *
+     * @return int|false count of rows or false if no connection, or not a select query
+     */
+    public function queryGetRowCount(){
+      if($this->getPdoConnection()){
+
+        // Save the existing select, order and limit arrays
+        $old_select = $this->select;
+        $old_order = $this->orderBy;
+        $old_limit = $this->limit;
+
+        // Reset the values
+        $this->select = $this->orderBy = $this->limit = Array();
+
+        // Add the new count select
+        $this->select("COUNT(*)");
+
+        // Run the query
+        $result = $this->query();
+
+        // Restore the values
+        $this->select   = $old_select;
+        $this->orderBy  = $old_order;
+        $this->limit    = $old_limit;
+
+        // Fetch the count from the query result
+        if($result){
+          $c = $result->fetchColumn();
+          $result->closeCursor();
+          return $c;
+        }
+      }
+      return false;
+    }
+
 
     public function rowsFound(){
       return $this->_rowsFound;
