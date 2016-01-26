@@ -93,6 +93,11 @@
     const ILIKE = "ILIKE";
 
     /**
+     * SOUNDS LIKE comparison operator.
+     */
+    const SOUNDSLIKE = 'SOUNDS LIKE';
+
+    /**
      * REGEXP comparison operator.
      */
     const REGEX = "REGEXP";
