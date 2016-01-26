@@ -5,10 +5,10 @@
    * concatenation necessary.
    *
    * @author    Justin Stayton
-   * @copyright Copyright 2013 by Justin Stayton
+   * @copyright Copyright 2015 by Justin Stayton
    * @license   https://github.com/jstayton/Miner/blob/master/LICENSE-MIT MIT
    * @package   Miner
-   * @version   0.9.2
+   * @version   0.10.0
    */
   class Miner {
 
@@ -220,7 +220,7 @@
     protected $delete;
 
     /**
-     * Column values to INSERT or UPDATE.
+     * Column values to INSERT, UPDATE, or REPLACE.
      *
      * @var array
      */
@@ -748,7 +748,7 @@
      */
     public function update($table) {
       $this->update = $table;
-      $this->set('sysmodified', 'NULL', FALSE);
+      $this->set('sysmodified', 'NOW()', FALSE);
       if (isset($_SESSION) && isset($_SESSION['user']['id'])) {
           $this->set('sysmodifier', $_SESSION['user']['id']);
       }
@@ -896,19 +896,36 @@
     }
 
     /**
-     * Add a column value to INSERT or UPDATE.
+     * Add one or more column values to INSERT, UPDATE, or REPLACE.
      *
-     * @param  string $column column name
-     * @param  mixed $value value
+     * @param  string|array $column column name or array of columns => values
+     * @param  mixed|null $value optional value for single column
      * @param  bool|null $quote optional auto-escape value, default to global
      * @return Miner
      */
-    public function set($column, $value, $quote = null) {
-      $this->set[] = array('column' => $column,
-                           'value'  => $value,
-                           'quote'  => $quote);
+    public function set($column, $value = null, $quote = null) {
+      if (is_array($column)) {
+        foreach ($column as $columnName => $columnValue) {
+          $this->set($columnName, $columnValue, $quote);
+        }
+      }
+      else {
+        $this->set[] = array('column' => $column,
+                             'value'  => $value,
+                             'quote'  => $quote);
+      }
 
       return $this;
+    }
+
+    /**
+     * Add an array of columns => values to INSERT, UPDATE, or REPLACE.
+     *
+     * @param  array $values columns => values
+     * @return Miner
+     */
+    public function values(array $values) {
+      return $this->set($values);
     }
 
     /**
@@ -1023,6 +1040,23 @@
     }
 
     /**
+     * Whether the join table and alias is unique (hasn't already been joined).
+     *
+     * @param  string $table table name
+     * @param  string $alias table alias
+     * @return bool whether the join table and alias is unique
+     */
+    private function isJoinUnique($table, $alias) {
+      foreach ($this->join as $join) {
+        if ($join['table'] == $table && $join['alias'] == $alias) {
+          return false;
+        }
+      }
+
+      return true;
+    }
+
+    /**
      * Add a JOIN table with optional ON criteria.
      *
      * @param  string $table table name
@@ -1032,6 +1066,10 @@
      * @return Miner
      */
     public function join($table, $criteria = null, $type = self::INNER_JOIN, $alias = null) {
+      if (!$this->isJoinUnique($table, $alias)) {
+        return $this;
+      }
+
       if (is_string($criteria)) {
         $criteria = array($criteria);
       }
